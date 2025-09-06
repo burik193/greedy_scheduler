@@ -1,0 +1,13 @@
+{
+  "dependency_violations": [],
+  "pause_violations": [],
+  "overlap_violations": [],
+  "blocker_violations": [],
+  "summary": {
+    "total_violations": 0,
+    "dependency_violations": 0,
+    "pause_violations": 0,
+    "overlap_violations": 0,
+    "blocker_violations": 0
+  }
+}

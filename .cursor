@@ -1,0 +1,43 @@
+# WarmStart - UV Project Configuration
+
+This is a **uv project** that uses Python's modern package manager and environment system.
+
+## Important: Environment Activation Required
+
+**Before running ANY commands in the console, you MUST activate the uv environment:**
+
+```bash
+# Activate the uv environment
+uv shell
+
+# Or run commands directly with uv
+uv run python your_script.py
+uv run pytest
+uv run mypy .
+```
+
+## Why This Matters
+
+- UV manages Python dependencies and virtual environments automatically
+- Running commands without activating the environment will fail or use the wrong Python version
+- The agent should always activate the uv environment before executing console commands
+- This ensures all dependencies are available and the correct Python version is used
+
+## Project Structure
+
+This project uses uv for:
+- Dependency management (`pyproject.toml`)
+- Virtual environment isolation
+- Fast package installation and resolution
+- Modern Python tooling
+
+## Agent Instructions
+
+When the agent needs to run console commands:
+1. **Always activate the uv environment first** using `uv shell`
+2. **Or prefix commands with `uv run`** to execute them in the environment
+3. **Never run Python commands directly** without environment activation
+4. **Use `uv add` for adding new dependencies**
+5. **Use `uv sync` for installing/updating dependencies**
+
+This ensures consistent behavior and prevents dependency-related errors.
