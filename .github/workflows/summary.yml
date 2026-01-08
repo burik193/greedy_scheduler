@@ -1,8 +1,12 @@
 name: Summarize new issues
 
 on:
-  issues:
-    types: [opened]
+  workflow_dispatch:
+    inputs:
+      summary_days:
+        description: 'Days to summarize'
+        required: false
+        default: '7'
 
 jobs:
   summary:
