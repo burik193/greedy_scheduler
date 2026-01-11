@@ -1,9 +1,6 @@
 name: AIIssueFix
 
 on:
-  name: AI-Powered Issue Fix
-
-on:
   issues:
     types:
       - labeled
