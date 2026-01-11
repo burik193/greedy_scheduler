@@ -14,7 +14,6 @@ jobs:
       contents: write
       pull-requests: write
       models: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +37,39 @@ jobs:
             Issue Body: ${{ github.event.issue.body }}
 
             Your plan:
+      - name: Stash plan
+        run: echo "${{ steps.plan.outputs.response }}" > .plan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan
+          path: .plan
+
+  generate_and_apply_patch:
+    needs: fix_issue
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      models: read
+    strategy:
+      max-parallel: 1
+      matrix:
+        attempt: [1, 2, 3]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ai-fix/issue-${{ github.event.issue.number }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plan
+
+      - name: Read plan
+        id: plan
+        run: echo "response=$(cat .plan)" >> $GITHUB_OUTPUT
 
       - name: Implement the plan
         id: implement
@@ -46,7 +78,7 @@ jobs:
           prompt: |
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
-            Generate the necessary code changes. For each file to be changed, provide the file path and the new content.
+            Generate the necessary code changes in the form of a unified diff (a .patch file).
 
             The plan is:
             ${{ steps.plan.outputs.response }}
@@ -54,15 +86,60 @@ jobs:
             Your implementation:
 
       - name: Apply changes
+        id: apply
+        continue-on-error: true
         run: |
-          echo "Applying changes to the repository"
           echo "$RESPONSE" > changes.patch
+          git apply --check changes.patch
           git apply changes.patch
         env:
           RESPONSE: ${{ steps.implement.outputs.response }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if apply succeeded
+        if: steps.apply.outcome == 'success'
+        run: echo "success" > .success
+
+      - name: Upload success artifact
+        if: steps.apply.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: success
+          path: .success
+
+  create_pr:
+    needs: generate_and_apply_patch
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: write
+    if: always() # Run even if some attempts in the matrix failed
+    steps:
+      - name: Download success artifact
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: success
+
+      - name: Check for success
+        id: check_success
+        if: steps.download.outcome == 'success'
+        run: echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Fail if no success
+        if: steps.check_success.outputs.status != 'success'
+        run: |
+          echo "All attempts to apply the patch failed."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ai-fix/issue-${{ github.event.issue.number }}
 
       - name: Commit and push changes
+        if: steps.check_success.outputs.status == 'success'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
@@ -74,13 +151,15 @@ jobs:
 
       - name: Create Pull Request
         id: pr
+        if: steps.check_success.outputs.status == 'success'
         run: |
-          pr_url=$(gh pr create --base $(git rev-parse --abbrev-ref HEAD) --head ai-fix/issue-${{ github.event.issue.number }} --title "Fix for issue #${{ github.event.issue.number }}" --body "This PR implements a fix for issue #${{ github.event.issue.number }}. Please review the changes.")
+          pr_url=$(gh pr create --base main --head ai-fix/issue-${{ github.event.issue.number }} --title "Fix for issue #${{ github.event.issue.number }}" --body "This PR implements a fix for issue #${{ github.event.issue.number }}. Please review the changes.")
           echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment on issue
+        if: steps.check_success.outputs.status == 'success'
         run: |
           gh issue comment ${{ github.event.issue.number }} --body "I've created a pull request to address this issue. Please review the changes here: ${{ steps.pr.outputs.pr_url }}"
         env:
