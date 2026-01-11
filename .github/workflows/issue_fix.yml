@@ -35,11 +35,11 @@ jobs:
           prompt: |
             You are an expert software developer. Your task is to create a detailed, step-by-step plan to address the following GitHub issue.
             The plan should be a list of concrete actions, like "modify file X to do Y".
+            Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. Prefer to add new files using unified diff with /dev/null for creations.
             Issue Title: ${{ github.event.issue.title }}
             Issue Body: ${{ github.event.issue.body }}
             Your plan:
           max-tokens: 600
-          temperature: 0.2
 
       - name: Implement (Attempt 1)
         id: implement_1
@@ -50,13 +50,13 @@ jobs:
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
             Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
           max-tokens: 2000
-          temperature: 0.2
 
       - name: Apply (Attempt 1)
         id: apply_1
@@ -106,13 +106,13 @@ jobs:
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
             Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
           max-tokens: 2000
-          temperature: 0.2
 
       - name: Apply (Attempt 2)
         id: apply_2
@@ -163,13 +163,13 @@ jobs:
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
             Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
           max-tokens: 2000
-          temperature: 0.2
 
       - name: Apply (Attempt 3)
         id: apply_3
