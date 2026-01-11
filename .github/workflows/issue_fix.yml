@@ -38,6 +38,8 @@ jobs:
             Issue Title: ${{ github.event.issue.title }}
             Issue Body: ${{ github.event.issue.body }}
             Your plan:
+          max-tokens: 600
+          temperature: 0.2
 
       - name: Implement (Attempt 1)
         id: implement_1
@@ -47,27 +49,48 @@ jobs:
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
+            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
+          max-tokens: 2000
+          temperature: 0.2
 
       - name: Apply (Attempt 1)
         id: apply_1
         continue-on-error: true
         run: |
-          echo "$RESPONSE" > changes.patch
-          if [ -s changes.patch ]; then
-            if git apply --check changes.patch; then
-              git apply changes.patch
-              echo "status=success" >> $GITHUB_OUTPUT
-            else
-              echo "Patch application failed."
-              echo "status=failure" >> $GITHUB_OUTPUT
-            fi
+          python - <<'PY'
+          import os, re, sys
+
+          resp = os.environ.get("RESPONSE", "").strip()
+          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
+          content = (match.group(1) if match else resp).strip()
+
+          if not content:
+            print("Patch content is empty after extraction.")
+            sys.exit(1)
+
+          if not content.startswith("diff --git"):
+            print("No diff detected in response. Aborting apply attempt.")
+            sys.exit(2)
+
+          with open("changes.patch", "w", encoding="utf-8") as f:
+            f.write(content + "\n")
+          PY
+          STATUS=$?
+          if [ "$STATUS" != "0" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if git apply --check changes.patch; then
+            git apply changes.patch
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "Patch file is empty."
+            echo "Patch application failed."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
@@ -82,28 +105,49 @@ jobs:
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
+            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
+          max-tokens: 2000
+          temperature: 0.2
 
       - name: Apply (Attempt 2)
         id: apply_2
         if: steps.apply_1.outputs.status != 'success'
         continue-on-error: true
         run: |
-          echo "$RESPONSE" > changes.patch
-          if [ -s changes.patch ]; then
-            if git apply --check changes.patch; then
-              git apply changes.patch
-              echo "status=success" >> $GITHUB_OUTPUT
-            else
-              echo "Patch application failed."
-              echo "status=failure" >> $GITHUB_OUTPUT
-            fi
+          python - <<'PY'
+          import os, re, sys
+
+          resp = os.environ.get("RESPONSE", "").strip()
+          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
+          content = (match.group(1) if match else resp).strip()
+
+          if not content:
+            print("Patch content is empty after extraction.")
+            sys.exit(1)
+
+          if not content.startswith("diff --git"):
+            print("No diff detected in response. Aborting apply attempt.")
+            sys.exit(2)
+
+          with open("changes.patch", "w", encoding="utf-8") as f:
+            f.write(content + "\n")
+          PY
+          STATUS=$?
+          if [ "$STATUS" != "0" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if git apply --check changes.patch; then
+            git apply changes.patch
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "Patch file is empty."
+            echo "Patch application failed."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
@@ -118,28 +162,49 @@ jobs:
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
             Generate the necessary code changes in the form of a unified diff (a .patch file).
+            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
 
             The plan is:
             ${{ steps.plan.outputs.response }}
 
             Your implementation:
+          max-tokens: 2000
+          temperature: 0.2
 
       - name: Apply (Attempt 3)
         id: apply_3
         if: steps.apply_1.outputs.status != 'success' && steps.apply_2.outputs.status != 'success'
         continue-on-error: true
         run: |
-          echo "$RESPONSE" > changes.patch
-          if [ -s changes.patch ]; then
-            if git apply --check changes.patch; then
-              git apply changes.patch
-              echo "status=success" >> $GITHUB_OUTPUT
-            else
-              echo "Patch application failed."
-              echo "status=failure" >> $GITHUB_OUTPUT
-            fi
+          python - <<'PY'
+          import os, re, sys
+
+          resp = os.environ.get("RESPONSE", "").strip()
+          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
+          content = (match.group(1) if match else resp).strip()
+
+          if not content:
+            print("Patch content is empty after extraction.")
+            sys.exit(1)
+
+          if not content.startswith("diff --git"):
+            print("No diff detected in response. Aborting apply attempt.")
+            sys.exit(2)
+
+          with open("changes.patch", "w", encoding="utf-8") as f:
+            f.write(content + "\n")
+          PY
+          STATUS=$?
+          if [ "$STATUS" != "0" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if git apply --check changes.patch; then
+            git apply changes.patch
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "Patch file is empty."
+            echo "Patch application failed."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
