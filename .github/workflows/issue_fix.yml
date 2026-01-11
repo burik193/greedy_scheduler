@@ -64,7 +64,7 @@ jobs:
           # Example of how you might handle the output from the 'implement' step
           # This assumes the output is structured in a way your script can parse.
           # For instance, you could have the AI output patches and then apply them:
-          # echo "${{ steps.implement.outputs.response }}" > changes.patch
+          # echo "<patch content>" > changes.patch
           # git apply changes.patch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
