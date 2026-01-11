@@ -48,8 +48,8 @@ jobs:
           prompt: |
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
-            Generate the necessary code changes in the form of a unified diff (a .patch file).
-            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Your response must be ONLY a valid unified diff (a .patch file). Do not include any explanation or other text.
+            If you include fences, use ```patch. Ensure paths match the current repository structure.
             Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
@@ -104,8 +104,8 @@ jobs:
           prompt: |
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
-            Generate the necessary code changes in the form of a unified diff (a .patch file).
-            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Your response must be ONLY a valid unified diff (a .patch file). Do not include any explanation or other text.
+            If you include fences, use ```patch. Ensure paths match the current repository structure.
             Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
@@ -161,8 +161,8 @@ jobs:
           prompt: |
             You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
             You have access to the full repository.
-            Generate the necessary code changes in the form of a unified diff (a .patch file).
-            Output only the diff, without explanation. If you include fences, use ```patch. Ensure paths match the current repository structure.
+            Your response must be ONLY a valid unified diff (a .patch file). Do not include any explanation or other text.
+            If you include fences, use ```patch. Ensure paths match the current repository structure.
             Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. When adding files, use /dev/null as the source in the diff. Avoid editing files that do not exist unless you create them in the same diff.
 
             The plan is:
