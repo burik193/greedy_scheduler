@@ -55,18 +55,11 @@ jobs:
 
       - name: Apply changes
         run: |
-          # This step would need a script to parse the output of the 'implement' step
-          # and apply the changes to the files.
-          # For example, if the output is a series of diffs, you could use 'git apply'.
-          # If it's new file contents, you'd overwrite the files.
-          # This is a placeholder for that logic.
-          echo "Applying changes based on the implementation plan..."
-          # Example of how you might handle the output from the 'implement' step
-          # This assumes the output is structured in a way your script can parse.
-          # For instance, you could have the AI output patches and then apply them:
-          echo "${{ steps.implement.outputs.response }}" > changes.patch
-          # git apply changes.patch
+          echo "Applying changes to the repository"
+          echo "$RESPONSE" > changes.patch
+          git apply changes.patch
         env:
+          RESPONSE: ${{ steps.implement.outputs.response }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit and push changes
