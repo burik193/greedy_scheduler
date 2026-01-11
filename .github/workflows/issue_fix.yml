@@ -40,6 +40,7 @@ jobs:
             Issue Body: ${{ github.event.issue.body }}
             Your plan:
           max-tokens: 600
+          model: gpt-4o
 
       - name: Implement (Attempt 1)
         id: implement_1
