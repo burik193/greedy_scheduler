@@ -7,7 +7,7 @@ on:
 
 jobs:
   summary:
-    if: github.event.label.name == 'ai_automation'
+    if: github.event.label.name == 'ai_summary'
     runs-on: ubuntu-latest
     permissions:
       issues: write
