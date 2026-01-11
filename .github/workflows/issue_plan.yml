@@ -1,0 +1,86 @@
+name: AIIssuePlan
+
+on:
+  issues:
+    types:
+      - labeled
+
+jobs:
+  plan_issue:
+    if: github.event.label.name == 'ai_plan'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+    steps:
+      - name: Comment on issue start
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "🚀 Starting to generate a plan for this issue."
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create branch
+        id: branch
+        run: |
+          BRANCH_NAME="ai-plan/issue-${{ github.event.issue.number }}"
+          git checkout -b $BRANCH_NAME
+          git push --set-upstream origin $BRANCH_NAME
+          echo "name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on branch creation
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "🌿 Created a new branch: `${{ steps.branch.outputs.name }}`"
+
+      - name: Create a plan
+        id: plan
+        uses: actions/ai-inference@v1
+        with:
+          prompt: |
+            You are an expert software developer. Your task is to create a detailed, step-by-step plan to address the following GitHub issue.
+            The plan should be a list of concrete actions, like "modify file X to do Y".
+            Repository snapshot: files present are README (may be absent), .gitignore (may be absent), greedy.py, grid.py, order.py, consistency_report.json. Prefer to add new files using unified diff with /dev/null for creations.
+            Issue Title: ${{ github.event.issue.title }}
+            Issue Body: ${{ github.event.issue.body }}
+            Your plan:
+          max-tokens: 600
+      
+      - name: Comment on plan creation
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "📝 Plan has been generated."
+
+      - name: Store plan
+        run: |
+          mkdir -p .github/proposed_fixes
+          echo "${{ steps.plan.outputs.response }}" > .github/proposed_fixes/issue-${{ github.event.issue.number }}
+      
+      - name: Commit and push plan
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .github/proposed_fixes/issue-${{ github.event.issue.number }}
+          git commit -m "feat: add proposed plan for issue #${{ github.event.issue.number }}"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on push
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "✅ Plan has been stored and pushed to the branch. You can review it there."
+
+      - name: Comment on error
+        if: failure()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "❌ An error occurred during the planning process. Please check the workflow logs for more details."
