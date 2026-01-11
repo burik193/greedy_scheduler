@@ -1,0 +1,97 @@
+name: AI-Powered Issue Fix
+
+on:
+  name: AI-Powered Issue Fix
+
+on:
+  issues:
+    types:
+      - labeled
+
+jobs:
+  fix_issue:
+    if: github.event.label.name == 'ai_automation'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: write
+      models: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create branch
+        run: |
+          git checkout -b ai-fix/issue-${{ github.event.issue.number }}
+          git push --set-upstream origin ai-fix/issue-${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a plan
+        id: plan
+        uses: actions/ai-inference@v1
+        with:
+          prompt: |
+            You are an expert software developer. Your task is to create a detailed, step-by-step plan to address the following GitHub issue.
+            The plan should be a list of concrete actions, like "modify file X to do Y".
+
+            Issue Title: ${{ github.event.issue.title }}
+            Issue Body: ${{ github.event.issue.body }}
+
+            Your plan:
+
+      - name: Implement the plan
+        id: implement
+        uses: actions/ai-inference@v1
+        with:
+          prompt: |
+            You are an expert software developer. Your task is to implement the following plan to fix a GitHub issue.
+            You have access to the full repository.
+            Generate the necessary code changes. For each file to be changed, provide the file path and the new content.
+
+            The plan is:
+            ${{ steps.plan.outputs.response }}
+
+            Your implementation:
+
+      - name: Apply changes
+        run: |
+          # This step would need a script to parse the output of the 'implement' step
+          # and apply the changes to the files.
+          # For example, if the output is a series of diffs, you could use 'git apply'.
+          # If it's new file contents, you'd overwrite the files.
+          # This is a placeholder for that logic.
+          echo "Applying changes based on the implementation plan..."
+          # Example of how you might handle the output from the 'implement' step
+          # This assumes the output is structured in a way your script can parse.
+          # For instance, you could have the AI output patches and then apply them:
+          # echo "${{ steps.implement.outputs.response }}" > changes.patch
+          # git apply changes.patch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "feat: Implement fix for issue #${{ github.event.issue.number }}"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        id: pr
+        run: |
+          pr_url=$(gh pr create --base $(git rev-parse --abbrev-ref HEAD) --head ai-fix/issue-${{ github.event.issue.number }} --title "Fix for issue #${{ github.event.issue.number }}" --body "This PR implements a fix for issue #${{ github.event.issue.number }}. Please review the changes.")
+          echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on issue
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "I've created a pull request to address this issue. Please review the changes here: ${{ steps.pr.outputs.pr_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
