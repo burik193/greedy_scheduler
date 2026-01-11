@@ -128,7 +128,7 @@ jobs:
               print(patch)
               print("------------------------------------")
 
-              if os.system(f"git apply --verbose --ignore-whitespace --unidiff-zero {patch_file}") != 0:
+              if os.system(f"git apply --verbose --recount --ignore-whitespace --unidiff-zero {patch_file}") != 0:
                   print(f"Error applying patch {i+1}. See output above.")
                   sys.exit(1)
               
@@ -227,7 +227,7 @@ jobs:
               print(patch)
               print("------------------------------------")
 
-              if os.system(f"git apply --verbose --ignore-whitespace --unidiff-zero {patch_file}") != 0:
+              if os.system(f"git apply --verbose --recount --ignore-whitespace --unidiff-zero {patch_file}") != 0:
                   print(f"Error applying patch {i+1}. See output above.")
                   sys.exit(1)
               
@@ -303,4 +303,35 @@ jobs:
               # Check if the patch is for a new file or a modification
               is_new_file = '--- /dev/null' in patch
               
-              # Extract the target file
+              # Extract the target file path from the '+++' line
+              target_file_match = re.search(r'^\+\+\+ b/(.*)', patch, re.MULTILINE)
+              if not target_file_match:
+                  print(f"Could not determine target file for patch {i+1}.")
+                  sys.exit(1)
+              
+              target_file = target_file_match.group(1).strip()
+
+              # If it's a modification but the file doesn't exist, create it first
+              if not is_new_file and not os.path.exists(target_file):
+                  print(f"File '{target_file}' does not exist. Creating it before applying patch.")
+                  # Create parent directories if they don't exist
+                  os.makedirs(os.path.dirname(target_file), exist_ok=True)
+                  open(target_file, 'a').close()
+
+              patch_file = f"changes_{i}.patch"
+              with open(patch_file, "w") as f:
+                  f.write(patch)
+              
+              print(f"\n--- Applying patch {i+1}/{len(full_patches)} ---")
+              print(patch)
+              print("------------------------------------")
+
+              if os.system(f"git apply --verbose --recount --ignore-whitespace --unidiff-zero {patch_file}") != 0:
+                  print(f"Error applying patch {i+1}. See output above.")
+                  sys.exit(1)
+              
+              print(f"Patch {i+1} applied successfully.")
+
+          print("All patches applied successfully.")
+          PY
+        shell: bash
