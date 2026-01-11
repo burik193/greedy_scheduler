@@ -48,6 +48,10 @@ jobs:
           name: plan
           path: .plan
 
+      - name: Output run ID
+        id: run-id
+        run: echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
+
   generate_and_apply_patch:
     needs: fix_issue
     runs-on: ubuntu-latest
@@ -58,6 +62,7 @@ jobs:
       max-parallel: 1
       matrix:
         attempt: [1, 2, 3]
+        run_id: [${{ needs.fix_issue.outputs.run_id }}]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,6 +73,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: plan
+          run-id: ${{ matrix.run_id }}
 
       - name: Read plan
         id: plan
