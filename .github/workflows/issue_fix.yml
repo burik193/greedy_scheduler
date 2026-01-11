@@ -115,12 +115,9 @@ jobs:
               print(patch)
               print("------------------------------------")
 
-              # Use --reject to handle cases where a patch doesn't apply cleanly
-              # It will apply the parts that it can and create .rej files for the rest.
-              # We check the exit code to see if it was successful.
-              if os.system(f"git apply --verbose {patch_file}") != 0:
+              # Use flags to be more lenient with patch format
+              if os.system(f"git apply --verbose --ignore-whitespace --unidiff-zero {patch_file}") != 0:
                   print(f"Error applying patch {i+1}. See output above.")
-                  # We can decide to stop or continue. For now, let's stop.
                   sys.exit(1)
               
               print(f"Patch {i+1} applied successfully.")
@@ -205,12 +202,9 @@ jobs:
               print(patch)
               print("------------------------------------")
 
-              # Use --reject to handle cases where a patch doesn't apply cleanly
-              # It will apply the parts that it can and create .rej files for the rest.
-              # We check the exit code to see if it was successful.
-              if os.system(f"git apply --verbose {patch_file}") != 0:
+              # Use flags to be more lenient with patch format
+              if os.system(f"git apply --verbose --ignore-whitespace --unidiff-zero {patch_file}") != 0:
                   print(f"Error applying patch {i+1}. See output above.")
-                  # We can decide to stop or continue. For now, let's stop.
                   sys.exit(1)
               
               print(f"Patch {i+1} applied successfully.")
@@ -295,12 +289,9 @@ jobs:
               print(patch)
               print("------------------------------------")
 
-              # Use --reject to handle cases where a patch doesn't apply cleanly
-              # It will apply the parts that it can and create .rej files for the rest.
-              # We check the exit code to see if it was successful.
-              if os.system(f"git apply --verbose {patch_file}") != 0:
+              # Use flags to be more lenient with patch format
+              if os.system(f"git apply --verbose --ignore-whitespace --unidiff-zero {patch_file}") != 0:
                   print(f"Error applying patch {i+1}. See output above.")
-                  # We can decide to stop or continue. For now, let's stop.
                   sys.exit(1)
               
               print(f"Patch {i+1} applied successfully.")
