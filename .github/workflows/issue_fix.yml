@@ -58,10 +58,16 @@ jobs:
         continue-on-error: true
         run: |
           echo "$RESPONSE" > changes.patch
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
+          if [ -s changes.patch ]; then
+            if git apply --check changes.patch; then
+              git apply changes.patch
+              echo "status=success" >> $GITHUB_OUTPUT
+            else
+              echo "Patch application failed."
+              echo "status=failure" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "Patch file is empty."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
@@ -88,10 +94,16 @@ jobs:
         continue-on-error: true
         run: |
           echo "$RESPONSE" > changes.patch
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
+          if [ -s changes.patch ]; then
+            if git apply --check changes.patch; then
+              git apply changes.patch
+              echo "status=success" >> $GITHUB_OUTPUT
+            else
+              echo "Patch application failed."
+              echo "status=failure" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "Patch file is empty."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
@@ -118,10 +130,16 @@ jobs:
         continue-on-error: true
         run: |
           echo "$RESPONSE" > changes.patch
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
+          if [ -s changes.patch ]; then
+            if git apply --check changes.patch; then
+              git apply changes.patch
+              echo "status=success" >> $GITHUB_OUTPUT
+            else
+              echo "Patch application failed."
+              echo "status=failure" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "Patch file is empty."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
         env:
