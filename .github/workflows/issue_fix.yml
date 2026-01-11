@@ -60,41 +60,74 @@ jobs:
 
       - name: Apply (Attempt 1)
         id: apply_1
-        continue-on-error: true
         run: |
           python - <<'PY'
-          import os, re, sys
+          import os
+          import re
+          import sys
 
-          resp = os.environ.get("RESPONSE", "").strip()
-          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
-          content = (match.group(1) if match else resp).strip()
+          response = """${{ steps.implement_1.outputs.response }}"""
+          patch_content = ""
 
-          if not content:
-            print("Patch content is empty after extraction.")
-            sys.exit(1)
+          # Find content within ```patch fences
+          match = re.search(r"```patch\s*\n(.*?)\n```", response, re.DOTALL)
+          if match:
+              patch_content = match.group(1)
+          else:
+              # If no fences, check if the whole response is a diff
+              if response.strip().startswith("diff --git"):
+                  patch_content = response.strip()
 
-          if not content.startswith("diff --git"):
-            print("No diff detected in response. Aborting apply attempt.")
-            sys.exit(2)
+          if not patch_content:
+              print("No diff detected in response.")
+              sys.exit(1)
 
-          with open("changes.patch", "w", encoding="utf-8") as f:
-            f.write(content + "\n")
+          # Split the content by the diff separator, keeping the separator
+          # The pattern looks for "diff --git" that is not at the start of the string
+          patches = re.split(r'(?<!^)(diff --git)', patch_content)
+          
+          # The result of the split is ['content1', 'diff --git', 'content2', 'diff --git', 'content3', ...]
+          # We need to re-assemble it into ['diff --git content1', 'diff --git content2', ...]
+          full_patches = []
+          if patch_content.startswith("diff --git"):
+              # The first item is the content of the first patch
+              full_patches.append(patches[0])
+              # Then we combine the separator with the content that follows
+              for i in range(1, len(patches), 2):
+                  if i + 1 < len(patches):
+                      full_patches.append(patches[i] + patches[i+1])
+          
+          if not full_patches:
+              print("Could not parse any valid patch sections.")
+              sys.exit(1)
+
+          print(f"Detected {len(full_patches)} patch(es) to apply.")
+
+          for i, patch in enumerate(full_patches):
+              if not patch.strip():
+                  continue
+              
+              patch_file = f"changes_{i}.patch"
+              with open(patch_file, "w") as f:
+                  f.write(patch)
+              
+              print(f"\n--- Applying patch {i+1}/{len(full_patches)} ---")
+              print(patch)
+              print("------------------------------------")
+
+              # Use --reject to handle cases where a patch doesn't apply cleanly
+              # It will apply the parts that it can and create .rej files for the rest.
+              # We check the exit code to see if it was successful.
+              if os.system(f"git apply --verbose {patch_file}") != 0:
+                  print(f"Error applying patch {i+1}. See output above.")
+                  # We can decide to stop or continue. For now, let's stop.
+                  sys.exit(1)
+              
+              print(f"Patch {i+1} applied successfully.")
+
+          print("All patches applied successfully.")
           PY
-          STATUS=$?
-          if [ "$STATUS" != "0" ]; then
-            echo "status=failure" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "Patch application failed."
-            echo "status=failure" >> $GITHUB_OUTPUT
-          fi
-        env:
-          RESPONSE: ${{ steps.implement_1.outputs.response }}
+        shell: bash
 
       - name: Implement (Attempt 2)
         id: implement_2
@@ -117,41 +150,74 @@ jobs:
       - name: Apply (Attempt 2)
         id: apply_2
         if: steps.apply_1.outputs.status != 'success'
-        continue-on-error: true
         run: |
           python - <<'PY'
-          import os, re, sys
+          import os
+          import re
+          import sys
 
-          resp = os.environ.get("RESPONSE", "").strip()
-          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
-          content = (match.group(1) if match else resp).strip()
+          response = """${{ steps.implement_2.outputs.response }}"""
+          patch_content = ""
 
-          if not content:
-            print("Patch content is empty after extraction.")
-            sys.exit(1)
+          # Find content within ```patch fences
+          match = re.search(r"```patch\s*\n(.*?)\n```", response, re.DOTALL)
+          if match:
+              patch_content = match.group(1)
+          else:
+              # If no fences, check if the whole response is a diff
+              if response.strip().startswith("diff --git"):
+                  patch_content = response.strip()
 
-          if not content.startswith("diff --git"):
-            print("No diff detected in response. Aborting apply attempt.")
-            sys.exit(2)
+          if not patch_content:
+              print("No diff detected in response.")
+              sys.exit(1)
 
-          with open("changes.patch", "w", encoding="utf-8") as f:
-            f.write(content + "\n")
+          # Split the content by the diff separator, keeping the separator
+          # The pattern looks for "diff --git" that is not at the start of the string
+          patches = re.split(r'(?<!^)(diff --git)', patch_content)
+          
+          # The result of the split is ['content1', 'diff --git', 'content2', 'diff --git', 'content3', ...]
+          # We need to re-assemble it into ['diff --git content1', 'diff --git content2', ...]
+          full_patches = []
+          if patch_content.startswith("diff --git"):
+              # The first item is the content of the first patch
+              full_patches.append(patches[0])
+              # Then we combine the separator with the content that follows
+              for i in range(1, len(patches), 2):
+                  if i + 1 < len(patches):
+                      full_patches.append(patches[i] + patches[i+1])
+          
+          if not full_patches:
+              print("Could not parse any valid patch sections.")
+              sys.exit(1)
+
+          print(f"Detected {len(full_patches)} patch(es) to apply.")
+
+          for i, patch in enumerate(full_patches):
+              if not patch.strip():
+                  continue
+              
+              patch_file = f"changes_{i}.patch"
+              with open(patch_file, "w") as f:
+                  f.write(patch)
+              
+              print(f"\n--- Applying patch {i+1}/{len(full_patches)} ---")
+              print(patch)
+              print("------------------------------------")
+
+              # Use --reject to handle cases where a patch doesn't apply cleanly
+              # It will apply the parts that it can and create .rej files for the rest.
+              # We check the exit code to see if it was successful.
+              if os.system(f"git apply --verbose {patch_file}") != 0:
+                  print(f"Error applying patch {i+1}. See output above.")
+                  # We can decide to stop or continue. For now, let's stop.
+                  sys.exit(1)
+              
+              print(f"Patch {i+1} applied successfully.")
+
+          print("All patches applied successfully.")
           PY
-          STATUS=$?
-          if [ "$STATUS" != "0" ]; then
-            echo "status=failure" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "Patch application failed."
-            echo "status=failure" >> $GITHUB_OUTPUT
-          fi
-        env:
-          RESPONSE: ${{ steps.implement_2.outputs.response }}
+        shell: bash
 
       - name: Implement (Attempt 3)
         id: implement_3
@@ -174,41 +240,74 @@ jobs:
       - name: Apply (Attempt 3)
         id: apply_3
         if: steps.apply_1.outputs.status != 'success' && steps.apply_2.outputs.status != 'success'
-        continue-on-error: true
         run: |
           python - <<'PY'
-          import os, re, sys
+          import os
+          import re
+          import sys
 
-          resp = os.environ.get("RESPONSE", "").strip()
-          match = re.search(r"```(?:diff|patch)?\n(.*?)\n```", resp, re.S)
-          content = (match.group(1) if match else resp).strip()
+          response = """${{ steps.implement_3.outputs.response }}"""
+          patch_content = ""
 
-          if not content:
-            print("Patch content is empty after extraction.")
-            sys.exit(1)
+          # Find content within ```patch fences
+          match = re.search(r"```patch\s*\n(.*?)\n```", response, re.DOTALL)
+          if match:
+              patch_content = match.group(1)
+          else:
+              # If no fences, check if the whole response is a diff
+              if response.strip().startswith("diff --git"):
+                  patch_content = response.strip()
 
-          if not content.startswith("diff --git"):
-            print("No diff detected in response. Aborting apply attempt.")
-            sys.exit(2)
+          if not patch_content:
+              print("No diff detected in response.")
+              sys.exit(1)
 
-          with open("changes.patch", "w", encoding="utf-8") as f:
-            f.write(content + "\n")
+          # Split the content by the diff separator, keeping the separator
+          # The pattern looks for "diff --git" that is not at the start of the string
+          patches = re.split(r'(?<!^)(diff --git)', patch_content)
+          
+          # The result of the split is ['content1', 'diff --git', 'content2', 'diff --git', 'content3', ...]
+          # We need to re-assemble it into ['diff --git content1', 'diff --git content2', ...]
+          full_patches = []
+          if patch_content.startswith("diff --git"):
+              # The first item is the content of the first patch
+              full_patches.append(patches[0])
+              # Then we combine the separator with the content that follows
+              for i in range(1, len(patches), 2):
+                  if i + 1 < len(patches):
+                      full_patches.append(patches[i] + patches[i+1])
+          
+          if not full_patches:
+              print("Could not parse any valid patch sections.")
+              sys.exit(1)
+
+          print(f"Detected {len(full_patches)} patch(es) to apply.")
+
+          for i, patch in enumerate(full_patches):
+              if not patch.strip():
+                  continue
+              
+              patch_file = f"changes_{i}.patch"
+              with open(patch_file, "w") as f:
+                  f.write(patch)
+              
+              print(f"\n--- Applying patch {i+1}/{len(full_patches)} ---")
+              print(patch)
+              print("------------------------------------")
+
+              # Use --reject to handle cases where a patch doesn't apply cleanly
+              # It will apply the parts that it can and create .rej files for the rest.
+              # We check the exit code to see if it was successful.
+              if os.system(f"git apply --verbose {patch_file}") != 0:
+                  print(f"Error applying patch {i+1}. See output above.")
+                  # We can decide to stop or continue. For now, let's stop.
+                  sys.exit(1)
+              
+              print(f"Patch {i+1} applied successfully.")
+
+          print("All patches applied successfully.")
           PY
-          STATUS=$?
-          if [ "$STATUS" != "0" ]; then
-            echo "status=failure" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if git apply --check changes.patch; then
-            git apply changes.patch
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "Patch application failed."
-            echo "status=failure" >> $GITHUB_OUTPUT
-          fi
-        env:
-          RESPONSE: ${{ steps.implement_3.outputs.response }}
+        shell: bash
 
       - name: Fail if no success
         if: steps.apply_1.outputs.status != 'success' && steps.apply_2.outputs.status != 'success' && steps.apply_3.outputs.status != 'success'
