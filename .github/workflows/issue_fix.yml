@@ -38,7 +38,9 @@ jobs:
 
             Your plan:
       - name: Stash plan
-        run: echo "${{ steps.plan.outputs.response }}" > .plan
+        run: echo "$RESPONSE" > .plan
+        env:
+          RESPONSE: ${{ steps.plan.outputs.response }}
 
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
