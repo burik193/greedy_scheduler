@@ -49,8 +49,6 @@ jobs:
             Issue Title: ${{ github.event.issue.title }}
             Issue Body: ${{ github.event.issue.body }}
             Your plan:
-          max-tokens: 600
-          model: gpt-4o
       
       - name: Comment on plan creation
         uses: peter-evans/create-or-update-comment@v4
