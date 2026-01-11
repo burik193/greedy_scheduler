@@ -14,6 +14,9 @@ jobs:
       contents: write
       pull-requests: write
       models: read
+    outputs:
+      run_id: ${{ steps.run-id.outputs.run_id }}
+      branch: ai-fix/issue-${{ github.event.issue.number }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -62,18 +65,16 @@ jobs:
       max-parallel: 1
       matrix:
         attempt: [1, 2, 3]
-        run_id: [${{ needs.fix_issue.outputs.run_id }}]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ai-fix/issue-${{ github.event.issue.number }}
+          ref: ${{ needs.fix_issue.outputs.branch }}
 
       - name: Download plan artifact
         uses: actions/download-artifact@v4
         with:
           name: plan
-          run-id: ${{ matrix.run_id }}
 
       - name: Read plan
         id: plan
@@ -115,7 +116,7 @@ jobs:
           path: .success
 
   create_pr:
-    needs: generate_and_apply_patch
+    needs: [fix_issue, generate_and_apply_patch]
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -144,7 +145,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ai-fix/issue-${{ github.event.issue.number }}
+          ref: ${{ needs.fix_issue.outputs.branch }}
 
       - name: Commit and push changes
         if: steps.check_success.outputs.status == 'success'
@@ -161,7 +162,7 @@ jobs:
         id: pr
         if: steps.check_success.outputs.status == 'success'
         run: |
-          pr_url=$(gh pr create --base main --head ai-fix/issue-${{ github.event.issue.number }} --title "Fix for issue #${{ github.event.issue.number }}" --body "This PR implements a fix for issue #${{ github.event.issue.number }}. Please review the changes.")
+          pr_url=$(gh pr create --base main --head ${{ needs.fix_issue.outputs.branch }} --title "Fix for issue #${{ github.event.issue.number }}" --body "This PR implements a fix for issue #${{ github.event.issue.number }}. Please review the changes.")
           echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
